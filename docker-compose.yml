@@ -1,0 +1,28 @@
+services:
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: lexosc
+      POSTGRES_USER: lexosc
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lexosc}
+    ports:
+      - '127.0.0.1:5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./sql/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U lexosc -d lexosc']
+      interval: 5s
+      retries: 10
+  mcp:
+    build: .
+    ports:
+      - '127.0.0.1:8000:8000'
+    environment:
+      DATABASE_URL: postgresql://lexosc:${POSTGRES_PASSWORD:-lexosc}@db:5432/lexosc
+    depends_on:
+      db:
+        condition: service_healthy
+volumes:
+  pgdata:
